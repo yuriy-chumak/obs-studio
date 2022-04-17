@@ -6,6 +6,7 @@ on:
     branches:
       - master
       - 'release/**'
+      - 'test/macos-12'
     tags: ['*']
   pull_request:
     paths-ignore: ['**.md']
@@ -65,10 +66,11 @@ jobs:
 
   macos_build:
     name: '02 - macOS'
-    runs-on: [macos-11]
+    runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         arch: ['x86_64', 'arm64']
+        os: [macos-11, macos-12]
     if: always()
     needs: [clang_check]
     env:
