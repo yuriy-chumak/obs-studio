@@ -297,6 +297,12 @@ static obs_properties_t *amf_properties_internal(bool hevc)
 #undef add_profile
 	}
 
+	p = obs_properties_add_text(props, "ffmpeg_opts",
+				    obs_module_text("FFmpegOpts"),
+				    OBS_TEXT_DEFAULT);
+	obs_property_set_long_description(
+		p, obs_module_text("FFmpegOpts.ToolTip"));
+
 	return props;
 }
 

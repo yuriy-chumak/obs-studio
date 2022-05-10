@@ -1,3 +1,4 @@
+#include <opts-parser.h>
 #include <obs-module.h>
 #include <obs-avc.h>
 
@@ -9,10 +10,10 @@
 #include <deque>
 #include <map>
 
+#include "external/AMF/include/components/VideoEncoderHEVC.h"
+#include "external/AMF/include/components/VideoEncoderVCE.h"
 #include "external/AMF/include/core/Factory.h"
 #include "external/AMF/include/core/Trace.h"
-#include "external/AMF/include/components/VideoEncoderVCE.h"
-#include "external/AMF/include/components/VideoEncoderHEVC.h"
 
 #include <dxgi.h>
 #include <d3d11.h>
@@ -124,6 +125,19 @@ static void set_amf_property(amf_data *enc, const wchar_t *name, const T &value)
 	set_amf_property(enc, AMF_VIDEO_ENCODER_##name, value)
 #define set_hevc_property(enc, name, value) \
 	set_amf_property(enc, AMF_VIDEO_ENCODER_HEVC_##name, value)
+
+#define get_opt_name(name)                                              \
+	((enc->codec == amf_codec_type::AVC) ? AMF_VIDEO_ENCODER_##name \
+					     : AMF_VIDEO_ENCODER_HEVC_##name)
+#define set_opt(name, value) set_amf_property(enc, get_opt_name(name), value)
+#define set_avc_opt(name, value) set_avc_property(enc, name, value)
+#define set_hevc_opt(name, value) set_hevc_property(enc, name, value)
+#define set_enum_opt(name, value) \
+	set_amf_property(enc, get_opt_name(name), get_opt_name(name##_##value))
+#define set_avc_enum(name, value) \
+	set_avc_property(enc, name, AMF_VIDEO_ENCODER_##name##_##value)
+#define set_hevc_enum(name, value) \
+	set_hevc_property(enc, name, AMF_VIDEO_ENCODER_HEVC_##name##_##value)
 
 /* ------------------------------------------------------------------------- */
 /* Implementation                                                            */
@@ -559,6 +573,8 @@ static void check_texture_encode_capability(obs_encoder_t *encoder, bool hevc)
 		throw "Wrong adapter";
 }
 
+#include "texture-amf-opts.hpp"
+
 extern "C" void amf_defaults(obs_data_t *settings);
 extern "C" obs_properties_t *amf_avc_properties(void *unused);
 extern "C" obs_properties_t *amf_hevc_properties(void *unused);
@@ -641,6 +657,15 @@ static bool amf_avc_update(void *data, obs_data_t *settings)
 
 	set_avc_property(enc, IDR_PERIOD, gop_size);
 	set_avc_property(enc, DE_BLOCKING_FILTER, true);
+
+	const char *ffmpeg_opts = obs_data_get_string(settings, "ffmpeg_opts");
+	if (ffmpeg_opts && *ffmpeg_opts) {
+		struct obs_options opts = obs_parse_options(ffmpeg_opts);
+		for (size_t i = 0; i < opts.count; i++) {
+			amf_apply_opt(enc, &opts.options[i]);
+		}
+		obs_free_options(opts);
+	}
 	return true;
 }
 
@@ -775,7 +800,7 @@ static bool amf_hevc_update(void *data, obs_data_t *settings)
 		set_hevc_property(enc, QP_P, qp);
 	}
 
-	set_avc_property(enc, ENFORCE_HRD, true);
+	set_hevc_property(enc, ENFORCE_HRD, true);
 	set_hevc_property(enc, HIGH_MOTION_QUALITY_BOOST_ENABLE, false);
 
 	int keyint_sec = (int)obs_data_get_int(settings, "keyint_sec");
@@ -783,6 +808,15 @@ static bool amf_hevc_update(void *data, obs_data_t *settings)
 				    : 250;
 
 	set_hevc_property(enc, NUM_GOPS_PER_IDR, gop_size);
+
+	const char *ffmpeg_opts = obs_data_get_string(settings, "ffmpeg_opts");
+	if (ffmpeg_opts && *ffmpeg_opts) {
+		struct obs_options opts = obs_parse_options(ffmpeg_opts);
+		for (size_t i = 0; i < opts.count; i++) {
+			amf_apply_opt(enc, &opts.options[i]);
+		}
+		obs_free_options(opts);
+	}
 	return true;
 }
 
@@ -825,7 +859,7 @@ try {
 	set_hevc_property(enc, NOMINAL_RANGE, enc->full_range);
 
 	if (is_hdr) {
-		AMDBufferPtr buf;
+		AMFBufferPtr buf;
 		enc->amf_context->AllocBuffer(AMF_MEMORY_HOST,
 					      sizeof(AMFHDRMetadata), &buf);
 		AMFHDRMetadata *md = (AMFHDRMetadata *)buf->GetNative();
@@ -838,7 +872,8 @@ try {
 		md->whitePoint[0] = 15635;
 		md->whitePoint[1] = 16450;
 		md->maxMasteringLuminance =
-			(amf_uint32)obs_get_hdr_nominal_peak() * 10000;
+			(amf_uint32)obs_get_video_hdr_nominal_peak_level() *
+			10000;
 		md->minMasteringLuminance = 0;
 		md->maxContentLightLevel = 0;
 		md->maxFrameAverageLightLevel = 0;

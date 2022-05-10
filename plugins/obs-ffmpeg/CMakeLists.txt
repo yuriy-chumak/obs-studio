@@ -69,8 +69,14 @@ if(OS_WINDOWS)
                  obs-ffmpeg.rc)
 
   target_sources(
-    obs-ffmpeg PRIVATE texture-amf.cpp jim-nvenc.c jim-nvenc.h
-                       jim-nvenc-helpers.c obs-ffmpeg-amf.c obs-ffmpeg.rc)
+    obs-ffmpeg
+    PRIVATE texture-amf.cpp
+            texture-amf-opts.hpp
+            jim-nvenc.c
+            jim-nvenc.h
+            jim-nvenc-helpers.c
+            obs-ffmpeg-amf.c
+            obs-ffmpeg.rc)
 
 elseif(OS_POSIX AND NOT OS_MACOS)
   find_package(Libpci REQUIRED)
