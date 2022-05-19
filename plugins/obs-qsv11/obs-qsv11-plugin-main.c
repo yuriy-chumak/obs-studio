@@ -60,11 +60,15 @@ OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE("obs-qsv11", "en-US")
 MODULE_EXPORT const char *obs_module_description(void)
 {
-	return "Intel Quick Sync Video H.264 encoder support for Windows";
+	return "Intel Quick Sync Video encoder support for Windows";
 }
 
 extern struct obs_encoder_info obs_qsv_encoder;
 extern struct obs_encoder_info obs_qsv_encoder_tex;
+#ifdef ENABLE_HEVC
+extern struct obs_encoder_info obs_qsv_hevc_encoder;
+extern struct obs_encoder_info obs_qsv_hevc_encoder_tex;
+#endif
 
 bool obs_module_load(void)
 {
@@ -78,12 +82,19 @@ bool obs_module_load(void)
 	if (sts == MFX_ERR_NONE) {
 		obs_register_encoder(&obs_qsv_encoder);
 		obs_register_encoder(&obs_qsv_encoder_tex);
+#ifdef ENABLE_HEVC
+		obs_register_encoder(&obs_qsv_hevc_encoder);
+		obs_register_encoder(&obs_qsv_hevc_encoder_tex);
+#endif
 		MFXClose(session);
 	} else {
 		impl = MFX_IMPL_HARDWARE_ANY | MFX_IMPL_VIA_D3D9;
 		sts = MFXInit(impl, &ver, &session);
 		if (sts == MFX_ERR_NONE) {
 			obs_register_encoder(&obs_qsv_encoder);
+#ifdef ENABLE_HEVC
+			obs_register_encoder(&obs_qsv_hevc_encoder);
+#endif
 			MFXClose(session);
 		}
 	}

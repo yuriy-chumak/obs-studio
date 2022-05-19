@@ -80,6 +80,11 @@ target_sources(
           QSV_Encoder_Internal.h
           bits/linux_defs.h
           bits/windows_defs.h)
+if(ENABLE_HEVC)
+  target_sources(
+    obs-qsv11 PRIVATE QSV_HevcEncoder_Internal.h
+                      QSV_HevcEncoder.cpp QSV_HevcEncoder_Internal.cpp)
+endif()
 
 target_link_libraries(
   obs-qsv11

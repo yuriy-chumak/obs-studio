@@ -74,6 +74,9 @@ static const struct qsv_rate_control_info qsv_ratecontrols[] = {
 	{"AVBR", false},  {"ICQ", true},  {"LA_ICQ", true}, {"LA_CBR", true},
 	{"LA_VBR", true}, {0, false}};
 static const char *const qsv_profile_names[] = {"high", "main", "baseline", 0};
+#ifdef ENABLE_HEVC
+static const char *const qsv_profile_names_hevc[] = {"main", "main10", 0};
+#endif
 static const char *const qsv_usage_names[] = {"quality",  "balanced", "speed",
 					      "veryslow", "slower",   "slow",
 					      "medium",   "fast",     "faster",
@@ -105,6 +108,9 @@ typedef struct {
 	mfxU16 nICQQuality;
 	bool bMBBRC;
 	bool bCQM;
+#ifdef ENABLE_HEVC
+	bool bHLG;
+#endif
 } qsv_param_t;
 
 enum qsv_cpu_platform {
@@ -142,6 +148,22 @@ int qsv_encoder_headers(qsv_t *, uint8_t **pSPS, uint8_t **pPPS,
 enum qsv_cpu_platform qsv_get_cpu_platform();
 bool prefer_igpu_enc(int *iGPUIndex);
 
+#ifdef ENABLE_HEVC
+int qsv_hevc_encoder_close(qsv_t *);
+int qsv_hevc_encoder_reconfig(qsv_t *, qsv_param_t *);
+void qsv_hevc_encoder_version(unsigned short *major, unsigned short *minor);
+qsv_t *qsv_hevc_encoder_open(qsv_param_t *);
+int qsv_hevc_encoder_encode(qsv_t *, uint64_t, uint8_t *, uint8_t *, uint32_t,
+			    uint32_t, mfxBitstream **pBS);
+int qsv_hevc_encoder_encode_tex(qsv_t *, uint64_t, uint32_t, uint64_t,
+				uint64_t *, mfxBitstream **pBS);
+int qsv_hevc_encoder_headers(qsv_t *pContext, uint8_t **pVPS, uint8_t **pSPS,
+			     uint8_t **pPPS, uint16_t *pnVPS, uint16_t *pnSPS,
+			     uint16_t *pnPPS);
+enum qsv_cpu_platform qsv_get_cpu_platform(); // in the QSV_Encoder.cpp
+bool prefer_igpu_hevc_enc(int *iGPUIndex);
+
+#endif
 #ifdef __cplusplus
 }
 #endif
