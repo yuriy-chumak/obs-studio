@@ -14,6 +14,10 @@ add_library(mac-videotoolbox MODULE)
 add_library(OBS::mac-videotoolbox ALIAS mac-videotoolbox)
 
 target_sources(mac-videotoolbox PRIVATE encoder.c)
+target_sources(mac-videotoolbox PRIVATE encoder-h264.c)
+if(ENABLE_HEVC)
+  target_sources(mac-videotoolbox PRIVATE encoder-h265.c)
+endif()
 
 target_link_libraries(
   mac-videotoolbox
