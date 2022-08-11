@@ -290,6 +290,7 @@ struct gs_exports {
 	bool (*gs_texture_rebind_iosurface)(gs_texture_t *texture,
 					    void *iosurf);
 	bool (*device_shared_texture_available)(void);
+    float (*get_max_edr_value)(gs_device_t *device);
 
 #elif _WIN32
 	bool (*device_gdi_texture_available)(void);

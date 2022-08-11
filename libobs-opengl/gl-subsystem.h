@@ -688,3 +688,5 @@ extern void gl_windowinfo_destroy(struct gl_windowinfo *wi);
 
 extern void gl_getclientsize(const struct gs_swap_chain *swap, uint32_t *width,
 			     uint32_t *height);
+
+extern float get_max_edr_value(gs_device_t *device);

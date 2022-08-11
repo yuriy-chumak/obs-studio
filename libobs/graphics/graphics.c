@@ -2956,6 +2956,15 @@ gs_texture_t *gs_texture_open_shared(uint32_t handle)
 	return NULL;
 }
 
+float gs_max_edr_value(void)
+{
+    graphics_t *graphics = thread_graphics;
+
+    if (!gs_valid_p("get_max_edr_value", graphics->device))
+        return 1.0f;
+
+    return graphics->exports.get_max_edr_value(graphics->device);
+}
 #elif _WIN32
 
 bool gs_gdi_texture_available(void)

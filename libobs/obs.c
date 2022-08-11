@@ -2027,6 +2027,14 @@ static void obs_render_main_texture_internal(enum gs_blend_type src_c,
 	case GS_CS_709_SCRGB:
 		tech_name = "DrawMultiply";
 		multiplier = obs_get_video_sdr_white_level() / 80.f;
+        break;
+#ifdef __APPLE__
+    case GS_CS_709_EXTENDED:
+        tech_name = "DrawMultiply";
+        if (source_space == GS_CS_709_EXTENDED)
+            multiplier = sqrt(gs_max_edr_value());
+        break;
+#endif
 	}
 
 	const bool previous = gs_framebuffer_srgb_enabled();

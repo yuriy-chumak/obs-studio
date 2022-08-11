@@ -875,7 +875,7 @@ void device_set_render_target(gs_device_t *device, gs_texture_t *tex,
 		}
 	}
 
-	if (!set_target(device, tex, 0, zstencil, GS_CS_SRGB))
+	if (!set_target(device, tex, 0, zstencil, GS_CS_709_EXTENDED)) // was: GS_CS_SRGB
 		goto fail;
 
 	return;

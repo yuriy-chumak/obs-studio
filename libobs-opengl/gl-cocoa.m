@@ -24,7 +24,7 @@
 //#include "util/darray.h"
 
 struct gl_windowinfo {
-	NSView *view;
+	NSOpenGLView *view;
 	NSOpenGLContext *context;
 	gs_texture_t *texture;
 	GLuint fbo;
@@ -51,7 +51,9 @@ static NSOpenGLContext *gl_context_create(NSOpenGLContext *share)
 	NSOpenGLPixelFormatAttribute attributes[40];
 
 	ADD_ATTR(NSOpenGLPFADoubleBuffer);
-	ADD_ATTR2(NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion3_2Core);
+	ADD_ATTR2(NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion4_1Core);
+	ADD_ATTR2(NSOpenGLPFAColorSize, 64);
+	ADD_ATTR(NSOpenGLPFAColorFloat)
 	ADD_ATTR(0);
 
 #undef ADD_ATTR2
@@ -120,6 +122,15 @@ bool gl_platform_init_swapchain(struct gs_swap_chain *swap)
 {
 	NSOpenGLContext *parent = swap->device->plat->context;
 	NSOpenGLContext *context = gl_context_create(parent);
+	swap->wi->view.openGLContext = context;
+
+	NSOpenGLView* glView = swap->wi->view;
+	CAOpenGLLayer* nsol = glView.layer;
+	NSWindow* nsw = glView.window;
+	[nsw setDepthLimit:NSWindowDepthSixtyfourBitRGB];
+	glView.wantsExtendedDynamicRangeOpenGLSurface = YES;
+	[nsol setWantsExtendedDynamicRangeContent:YES];
+	
 	bool success = context != nil;
 	if (success) {
 		CGLContextObj parent_obj = [parent CGLContextObj];
@@ -195,9 +206,26 @@ struct gl_windowinfo *gl_windowinfo_create(const struct gs_init_data *info)
 		return NULL;
 
 	struct gl_windowinfo *wi = bzalloc(sizeof(struct gl_windowinfo));
+	
+	NSOpenGLView* glView;
+	NSOpenGLPixelFormatAttribute pixelFormatAttributes[] ={
+		NSOpenGLPFAOpenGLProfile, NSOpenGLProfileVersion4_1Core,
+			NSOpenGLPFAColorSize    , 64,
+			NSOpenGLPFAColorFloat   ,
+			NSOpenGLPFADoubleBuffer ,
+			0
+	};
+	NSOpenGLPixelFormat* format = [[NSOpenGLPixelFormat alloc]initWithAttributes:pixelFormatAttributes];
 
-	wi->view = info->window.view;
-	[info->window.view setWantsBestResolutionOpenGLSurface:YES];
+	glView = [[NSOpenGLView alloc]initWithFrame:NSMakeRect(0, 0, info->cx, info->cy)  pixelFormat:format];
+	[info->window.view addSubview:glView];
+	[[glView openGLContext]makeCurrentContext];
+	[glView prepareOpenGL];
+	[glView setWantsBestResolutionOpenGLSurface:YES];
+	[glView setWantsExtendedDynamicRangeOpenGLSurface:YES];
+	wi->view = glView;
+
+//	was: wi->view.window.colorSpace =[[NSColorSpace alloc] initWithCGColorSpace: CGColorSpaceCreateWithName(kCGColorSpaceExtendedLinearSRGB)];
 
 	return wi;
 }
@@ -434,6 +462,7 @@ bool gs_texture_rebind_iosurface(gs_texture_t *texture, void *iosurf)
 
 	tex->width = IOSurfaceGetWidth(ref);
 	tex->height = IOSurfaceGetHeight(ref);
+    // TODO: resize glview like [[NSOpenGLView alloc]initWithFrame:NSMakeRect(0, 0, info->cx, info->cy)  pixelFormat:format];
 
 	if (!gl_bind_texture(tex->base.gl_target, tex->base.texture))
 		return false;
@@ -458,3 +487,16 @@ bool gs_texture_rebind_iosurface(gs_texture_t *texture, void *iosurf)
 
 	return true;
 }
+
+float get_max_edr_value(gs_device_t *device)
+{
+	NSScreen* screen = device->cur_swap->wi->view.window.screen;
+	static float retVal = 1.0f;
+	const float alpha = 0.05f;
+	float maxPot = (float)screen.maximumPotentialExtendedDynamicRangeColorComponentValue;
+	float maxRef = (float)screen.maximumReferenceExtendedDynamicRangeColorComponentValue;
+	float maxVal = (float)screen.maximumExtendedDynamicRangeColorComponentValue;
+	retVal = retVal * (1-alpha) + maxVal*alpha;
+	return maxVal;
+}
+

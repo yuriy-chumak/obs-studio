@@ -894,6 +894,7 @@ EXPORT gs_texture_t *gs_texture_create_from_iosurface(void *iosurf);
 EXPORT bool gs_texture_rebind_iosurface(gs_texture_t *texture, void *iosurf);
 EXPORT gs_texture_t *gs_texture_open_shared(uint32_t handle);
 EXPORT bool gs_shared_texture_available(void);
+EXPORT float gs_max_edr_value(void);
 
 #elif _WIN32
 
